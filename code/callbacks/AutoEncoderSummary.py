@@ -55,7 +55,7 @@ class AutoEncoderSummary(tf.keras.callbacks.Callback):
 
                 summary_values.append(
                     tf.Summary.Value(
-                        tag=f"{split}+Input_Reconstructed/{i}",
+                        tag="{}+Input_Reconstructed/{}".format(split,i),
                         image=self._make_image((to_show)),
                     )
                 )
