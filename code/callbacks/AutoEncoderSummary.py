@@ -1,9 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import PIL.Image as Image
-import io
 import matplotlib.pyplot as plt
 
+from .utils import plt_figure_to_array, array_to_image_summary
 
 class AutoEncoderSummary(tf.keras.callbacks.Callback):
     """Callback that adds image summaries for semantic segmentation to an existing
@@ -18,22 +17,6 @@ class AutoEncoderSummary(tf.keras.callbacks.Callback):
         self.update_freq = update_freq
 
         self.colormap = cmap
-
-    def _make_image(self, array):
-        """Converts an image array to the protobuf representation neeeded for image
-        summaries."""
-        height, width, channels = array.shape
-        image = Image.fromarray(array)
-
-        with io.BytesIO() as memf:
-            image.save(memf, format="PNG")
-            image_string = memf.getvalue()
-        return tf.Summary.Image(
-            height=height,
-            width=width,
-            colorspace=channels,
-            encoded_image_string=image_string,
-        )
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.update_freq != 0:
@@ -51,12 +34,12 @@ class AutoEncoderSummary(tf.keras.callbacks.Callback):
                 fig = self.get_figure_images(
                     image.reshape(28, 28), pred.reshape(28, 28)
                 )
-                to_show = plot_to_array(fig)
+                to_show = plt_figure_to_array(fig)
 
                 summary_values.append(
                     tf.Summary.Value(
                         tag="{}+Input_Reconstructed/{}".format(split,i),
-                        image=self._make_image((to_show)),
+                        image=array_to_image_summary(to_show),
                     )
                 )
         summary = tf.Summary(value=summary_values)
@@ -77,28 +60,4 @@ class AutoEncoderSummary(tf.keras.callbacks.Callback):
         plt.yticks([])
 
         return figure
-
-
-def maybe_to_rgb(image):
-
-    if image.ndim >= 3 and image.shape[2] == 1:
-        image = np.stack([image[..., 0]] * 3, axis=-1)
-
-    return image
-
-
-def plot_to_array(figure):
-    """Converts the matplotlib plot specified by 'figure' to a PNG image and
-    returns it. The supplied figure is closed and inaccessible after this call."""
-    # Save the plot to a PNG in memory.
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png")
-    # Closing the figure prevents it from being displayed directly inside
-    # the notebook.
-    plt.close(figure)
-    buf.seek(0)
-    with Image.open(buf) as img:
-        image = np.asarray(img)[..., :3]
-
-    return image
 

@@ -21,11 +21,11 @@ class VEncoder(tf.keras.Model):
         stds = self.std_layer(x)
 
         # reparameterization trick
-        z_sample = sampling(means, stds)
+        z_sample = sample(means, stds)
         return means, stds, z_sample
 
 
-def sampling(means, stds):
+def sample(means, stds):
     batch = tf.keras.backend.shape(means)[0]
     dim = tf.keras.backend.int_shape(means)[1]
     # by default, random_normal has mean=0 and std=1.0

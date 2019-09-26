@@ -4,6 +4,10 @@ import PIL.Image as Image
 import io
 import cv2
 
+from .utils import array_to_image_summary
+from .utils import maybe_to_rgb
+
+
 class GanSummary(tf.keras.callbacks.Callback):
     """Callback that adds image summaries for semantic segmentation to an existing
     tensorboard callback."""
@@ -55,21 +59,14 @@ class GanSummary(tf.keras.callbacks.Callback):
             summary_values.append(
                 tf.Summary.Value(
                     tag="Noise_to_Generated/{}".format(i),
-                    image=self._make_image(maybe_to_rgb(to_show)),
+                    image=array_to_image_summary(maybe_to_rgb(to_show)),
                 )
             )
         summary = tf.Summary(value=summary_values)
         self.tensorboard_callback.writer.add_summary(summary, epoch)
 
 
-def maybe_to_rgb(image):
-
-    if image.ndim >= 3 and image.shape[2] == 1:
-        image = np.stack([image[..., 0]] * 3, axis=-1)
-
-    return image
-
-class GanSummary2(tf.keras.callbacks.Callback):
+class DiscriminatorGanSummary(tf.keras.callbacks.Callback):
     """Callback that adds image summaries for semantic segmentation to an existing
     tensorboard callback."""
 
@@ -94,22 +91,6 @@ class GanSummary2(tf.keras.callbacks.Callback):
 
         self.colormap = cmap
 
-    def _make_image(self, array):
-        """Converts an image array to the protobuf representation neeeded for image
-        summaries."""
-        height, width, channels = array.shape
-        image = Image.fromarray(array)
-
-        with io.BytesIO() as memf:
-            image.save(memf, format="PNG")
-            image_string = memf.getvalue()
-        return tf.Summary.Image(
-            height=height,
-            width=width,
-            colorspace=channels,
-            encoded_image_string=image_string,
-        )
-
     def on_epoch_end(self, epoch, logs=None):
         if epoch % self.update_freq != 0:
             return
@@ -133,7 +114,7 @@ class GanSummary2(tf.keras.callbacks.Callback):
             summary_values.append(
                 tf.Summary.Value(
                     tag="Noise_to_Generated/{}".format(i),
-                    image=self._make_image(to_show),
+                    image=array_to_image_summary(to_show),
                 )
             )
         summary = tf.Summary(value=summary_values)
